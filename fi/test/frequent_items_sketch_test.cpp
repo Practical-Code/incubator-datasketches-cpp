@@ -31,6 +31,10 @@ static std::string testBinaryInputPath = "test/";
 
 namespace datasketches {
 
+TEST_CASE("frequent items: invalid k", "[frequent_items_sketch]") {
+  REQUIRE_THROWS_AS(frequent_items_sketch<int>(2), std::invalid_argument);
+}
+
 TEST_CASE("frequent items: empty", "[frequent_items_sketch]") {
   frequent_items_sketch<int> sketch(3);
   REQUIRE(sketch.is_empty());
@@ -277,7 +281,7 @@ TEST_CASE("frequent items: serialize deserialiation long64 bytes", "[frequent_it
   REQUIRE(sketch2.get_estimate(5) == 5);
 }
 
-TEST_CASE("frequent items: serialize deseriali string stream", "[frequent_items_sketch]") {
+TEST_CASE("frequent items: serialize deserialize string stream", "[frequent_items_sketch]") {
   frequent_items_sketch<std::string> sketch1(3);
   sketch1.update("aaaaaaaaaaaaaaaa", 1);
   sketch1.update("bbbbbbbbbbbbbbbb", 2);
@@ -337,6 +341,20 @@ TEST_CASE("frequent items: serialize deserialize string, utf-8 stream", "[freque
   REQUIRE(sketch2.get_estimate("йклмн") == 3);
   REQUIRE(sketch2.get_estimate("опрст") == 4);
   REQUIRE(sketch2.get_estimate("уфхцч") == 5);
+}
+
+TEST_CASE("frequent items: int64 deserialize single item buffer overrun", "[frequent_items_sketch]") {
+  frequent_items_sketch<int64_t> sketch(3);
+  sketch.update(1);
+  auto bytes = sketch.serialize();
+  REQUIRE_THROWS_AS(frequent_items_sketch<int64_t>::deserialize(bytes.data(), bytes.size() - 1), std::out_of_range);
+}
+
+TEST_CASE("frequent items: string deserialize single item buffer overrun", "[frequent_items_sketch]") {
+  frequent_items_sketch<std::string> sketch(3);
+  sketch.update("a");
+  auto bytes = sketch.serialize();
+  REQUIRE_THROWS_AS(frequent_items_sketch<std::string>::deserialize(bytes.data(), bytes.size() - 1), std::out_of_range);
 }
 
 } /* namespace datasketches */
